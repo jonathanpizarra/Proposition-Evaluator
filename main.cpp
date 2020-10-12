@@ -13,23 +13,92 @@ using namespace std;
 //       v.2.2.0 - June 2, 2019 Sunday 11:31AM - Finally fixed the bug. But realized that I wasn't able to add the negation (~) operator in the algorithm... :((
 //               : October 8, 2020 Thursday 5:25 pm PST - After more than a year, I finally have time to revisit and complete this code.
 //                 I will upload this to github first before making changes.
+//               : October 12, 2020 9:10 am. Missing logic. Should not evaluate similar expression that was already evaluated
+//                 eg. : (p->q)^(p->q), the expression p->q should only be evaluated once.
+//                 It should be replaced by A^A because they are just the same.
+//        v3.0 - : October 12, 2020 7:12pm. Fixed the missing logic. Now fully functioning but expecting minor logical errors.
+//               : October 12, 2020 11:54 pm. commit changes to github repo.
+//                 Bug: Problem arises if the table exceeds 31 columns. Exceeds the 26 capital letters. 
 
 int operant, cols;
 vector< vector<int> > table; // truth table
-vector<string> vs; // variables in input prop
+vector< vector<string> > vs; // variables in input prop
 vector< vector<int> > groups; // braces group
+vector< int > negations; // positions of negation operators
 int group[2] = {-1,-1};
 char caps = 'A'; // letters for simplifying prop expression
 string sub;
-int v_count = 0;
+int v_count = 0; // length of vs
 
     string ops = "v^o<->";
     string openings = "{[(";
     string closings = "]})";
     string vars = "pqrst";
 
+void print_table(){
+    // increase cmd screen width buffer size if the proposition is too long.
+    cout << "\n\n Truth Table: \n > : Shorthand for ->\n < : Shorthand for <->\n\n";
+    int ts = table.size();
+    int x,y,z;
+    int len[ts];
+    int left,right;
+
+    for(y=0; y<vs.size(); y++){
+        len[y] = (vs[y][0] == vs[y][1]) ? vs[y][0].length()+1 : len[y] = vs[y][0].length() + vs[y][1].length() + 3;
+    }
+
+    cout << char(218);
+    for(x=0; x<vs.size(); x++){
+        for(y=0; y<len[x]+1; y++){
+            cout << char(196); // horizontal bar symbol
+        }
+        cout << ((x == vs.size()-1) ? char(191) : char(194)); // cross symbol
+    }
+
+    cout << "\n" << char(179) << " ";
+    for(y=0; y<vs.size(); y++){
+        if(vs[y][0] == vs[y][1]){
+            cout << vs[y][0] << " " << char(179) << " ";
+        }else{
+            cout << vs[y][0] << ": " << vs[y][1] << " " << char(179) << " ";
+        }
+    }
+    cout << "\n" << char(195);
+
+    for(x=0; x<vs.size(); x++){
+        for(y=0; y<len[x]+1; y++){
+            cout << char(196); // horizontal bar symbol
+        }
+        cout << ((x == vs.size()-1) ? char(180) : char(197)); // cross symbol
+    }
+    cout << "\n";
+    for(x = 0; x < cols; x++){
+        cout << char(179);
+        for(y = 0; y < ts; y++){
+            left = right = len[y]/2;
+            if( (len[y]/2)*2 != len[y] ){
+                right++;
+            }
+            for(z=0; z<left; z++) cout << " ";
+            cout << table[y][x];
+            for(z=0; z<right; z++) cout << " ";
+            cout << char(179); // vertical bar symbol
+        }
+        cout << "\n";
+    }
+    cout << char(192);
+
+    for(x=0; x<vs.size(); x++){
+        for(y=0; y<len[x]+1; y++){
+            cout << char(196); // horizontal bar symbol
+        }
+        cout << ((x == vs.size()-1) ? char(217) : char(193)); // cross symbol
+    }
+
+}
+
 bool checkIfValidChars(string p){
-    string vals = "pqrsto^v(){}[]<->";
+    string vals = "pqrsto^v(){}[]<->~";
 
     for(unsigned int x = 0; x < p.length(); x++){
         if(p[x] == ' '){
@@ -40,7 +109,6 @@ bool checkIfValidChars(string p){
         }
     }
     return true;
-
 }
 
 bool checkIfBalance(string p){
@@ -63,11 +131,8 @@ bool checkIfBalance(string p){
                     return false;
                 }
             }
-        //    cout << "\nxxxstack : " << stacc.size() << endl;
         }
-    } // end of FOR LOOP
-
-   // cout << "\nstacc : " << (stacc.size()) << endl;
+    }
     if(stacc.size() == 0){
         return true;
     }else{
@@ -76,25 +141,41 @@ bool checkIfBalance(string p){
 }
 
 bool checkIfValidExp(string p){
-    cout << "\nChecking your expression...\n";
     char c1, c2;
     int n = p.length(), x;
 //closings...openings...vars...ops.. -moved to global scope
 
+// I FEEL LIKE ALL THE LOGIC HERE CAN STILL BE SIMPLIFIED.
+// TODO : ADD A METHOD THAT DISPLAYS WHERE EXACTLY IN THE STRING THE ERROR IS.
+
+/* additional logic for negation operator
+    ~ can't come after a variable.
+    ~ can't go between brackets like   )~(    )~)    (~)     but can go  (~(
+    ~ can't go consecutively like : ~~
+
+*/
+
     for(x = 0; x < n-1; x++){
         c1 = p[x];
         c2 = p[x+1];
+
         if(x == 0 && (ops.find(c1) != np || closings.find(c1) != np) ){
-            cout << "\nInvalid first char\n";
-            return false;
+            if(c1 != '~'){
+                cout << "\nInvalid first char : " << c1 << "\n";
+                return false;
+            }
         }
 
-        if(openings.find(c1) != np && (closings.find(c2) != np || ops.find(c2) != np) ){
-            cout << "\nInvalid char after opening brace/bracket/parenthesis\n";
-            if(closings.find(c2) != np){
-                cout << "Empty braces:" << c1 << c2;
+        if(openings.find(c1) != np ){
+            if(ops.find(c2) != np){
+                cout << "\nOperator not allowed after opening bracket:" << x << "," << x+1 <<":\n";
+                return false;
+            }else if(closings.find(c2) != np){
+                cout << "\nEmpty braces not allowed. " << c1 << c2;
+                return false;
+            }else if(c2 == '~'){
+                continue;
             }
-            return false;
         }
         if(closings.find(c1) != np && (vars.find(c2) != np || openings.find(c2) != np) ){
             cout << "\nInvalid char after closing brace/bracket/parenthesis\n";
@@ -136,20 +217,17 @@ bool checkIfValidExp(string p){
                 return false;
             }
         }else if(c1 == '-'){
-          //  cout << "\nEncountered a minus char.\n";
             if(c2 != '>'){
                 cout << "\nInvalid char after (-) minus. (>) is missing.\n";
                 return false;
             }else if( (c2 == '>') && (ops.find(p[x+2]) != np || closings.find(p[x+2]) != np ) ){
-                cout << "\nInvalid char after -> operator:" << p[x+2] <<": \n";
+                cout << "\nInvalid char after -> operator: " << p[x+2] <<" \n";
                 return false;
             }else{
-                //cout << "\nValid char after -> operator\n";
                 operant = 4;
                 x++;
             }
         }else if(c1 == '<'){
-           // cout << "\nEncountered (<) less than.\n";
             if(c2 != '-' || (x+2 < n && p[x+2] != '>') ){
                 cout << "\nInvalid chars after (<) symbol.\n";
                 return false;
@@ -162,20 +240,33 @@ bool checkIfValidExp(string p){
                     x+=2;
                 }
             }
+        }else if(c1 == '~'){
+            /* additional logic for negation operator
+                ~ can't come after a variable.
+                ~ can't go between brackets like   )~(    )~)    (~)     but can go  (~(
+                ~ can't go consecutively like : ~~
+            */
+            if(c2 == '~'){
+                cout << "\nInvalid consecutive negation operators";
+                return false;
+            }else if(closings.find(c2) != np){
+                cout << "\nInvalid negation operator at the end of closing bracket";
+                return false;
+            }else if( x > 0 && openings.find(c2) != np && closings.find(p[x-1]) != np){
+                cout << "\nNegation operator can't be between closing and opening brackets";
+                return false;
+            }
         }
-
     }//end of for loop
-
-
     return true;
 }
 
 void get_group(string p){
-    //cout << "\nstart of get_group";
+    // GET THE POSITIONS OF BRACKET GROUPS eg. : (p>q) gets 0 and 4
     groups.clear();
     string b = "(){}[]";
-    vector< int > poss;
-    vector< char > braces;
+    vector< int > poss; // current character position
+    vector< char > braces; //
     for(unsigned int x = 0; x < p.length(); x++){
         if(b.find(p[x]) != np){
             if(p[x] == '(' || p[x] == '{' || p[x] == '['){
@@ -183,7 +274,7 @@ void get_group(string p){
                 braces.push_back(p[x]);
             }else{
                 if( (p[x] == ')' && braces.back() == '(') || (p[x] == '}' && braces.back() == '{') || (p[x] == ']' && braces.back() == '[') ){
-                    groups.push_back({poss.back(), signed(x)});
+                    groups.push_back({poss.back(), signed(x)}); // gets the positions of the start and end of group
                     braces.pop_back();
                     poss.pop_back();
                 }
@@ -191,7 +282,7 @@ void get_group(string p){
         }
     }
 
-    if(groups.size() == 0){
+    if(groups.size() == 0){ // setting default
         group[0] = -1;
         group[1] = -1;
     }else{
@@ -200,23 +291,19 @@ void get_group(string p){
     }
 
     for(unsigned int y = 0; y < groups.size(); y++){
-           // cout << "\ny = " << groups.size();
+           // getting the innermost group first
         if(groups[y][0] > group[0] && groups[y][1] < group[1]){
             group[0] = groups[y][0];
             group[1] = groups[y][1];
 
         }
     }
-    //cout << "\n ggg="<< group[0];
-
-//cout << "\ng[0] = " << group[0] << " .. g[1] = " << group[1];
 
 } // end of get_group
 
-int get_pos(char p){
-    //cout << "\np : " << p;
+int get_pos(string p){
+    // GET THE POSITION OF SHORTENER VARIABLE IN vs list
     for(unsigned int x = 0; x < vs.size(); x++){
-          //  cout << "\nlooping.." << vs[x][0];
         if(vs[x][0] == p){
             return x;
         }
@@ -224,122 +311,270 @@ int get_pos(char p){
     return -1;
 }
 
-int evaluator(string *p){
-    char p1, p2, p3;
-    int v1, v2;
-    int ts;
-    string extra = "a";
-if(groups.size() != 0){
-    do{
-        sub = (*p).substr(group[0]+1, group[1] - group[0]-1);
-        //cout << "\nSub : " << sub << " .. g[0]=" << group[0] << " .. g[1]=" << group[1] << " .. gsize=" << groups.size();
-        do{
-            p1 = sub[0];
-            p2 = sub[1];
-            p3 = sub[2];
-            extra = "a";
-            extra[0] = caps;
-            extra += sub.substr(0,3);
-           // cout << "\nextra : " << extra;
-            v1 = vars.find(p1);
-            if(v1 == np){
-                v1 = get_pos(p1);
-            }
-            v2 = vars.find(p3);
-            if(v2 == np){
-                v2 = get_pos(p3);
-            }
-            ts = table.size();
-            table.push_back(vector<int>(cols));
-            vs.push_back(extra);
-
-            // EVALUATION OF PROPOSITION BASED ON p2 (OPERATOR)
-            for(int y = 0; y < cols; y++){
-                //    cout << "\ny:" << y;
-                if(p2 == '^'){ // CONJUNCTION
-                    table[ts][y] = int (table[v1][y] && table[v2][y]);
-                }else if(p2 == 'v'){ ////DISJUNCTION
-                    table[ts][y] = (table[v1][y] || table[v2][y]);
-                }else if(p2 == '<'){ // BICONDITION
-                    table[ts][y] = int (table[v1][y] == table[v2][y]);
-                }else if(p2 == 'o'){ // EXCLUSIVE DISJUNCTION
-                    table[ts][y] = int (table[v1][y] != table[v2][y]);
-                  //  cout << "\nxclusive disj:v1:" << table[v1][y] << "   v2:" << table[v2][y] << "\n";
-                }else if(p2 == '>'){ // IMPLICATION
-                    table[ts][y] = int ((table[v1][y] == 1 && table[v2][y] == 0)? 0:1);
-                }
-            } // end of cols loop
-            //cout << "\nmidSub : " << sub << " .. P : " << *p << " .. gsize=" << groups.size();
-
-            sub[0] = caps;
-            if(openings.find((*p)[group[0]]) != np){
-                (*p).erase(group[0],1);
-            }
-            (*p)[group[0]] = caps;
-            sub.erase(1,2);
-            (*p).erase(group[0]+1, 2); //
-            caps++;
-//cout << "\n extra : " << extra << " .. P : " << *p << " .. sub = " << sub;
-        }while(sub.length() != 1);
-//cout << "\nbefore = " << *p ;
-        (*p).erase(group[0]+1,1);
-        //cout << "\n.....after = " << *p;
-        get_group(*p);
-//cout << "\nendSub : " << sub << " .. g[0]=" << group[0] << " .. g[1]=" << group[1] << " .. gsize=" << groups.size();
-
-    }while(group[0] >= 0 && group[1] > 0); // end of groups loop
-
-
-}else{
-    //cout << "\nerror ....";
+int get_duplicate(string p){
+    // GET POSSIBLE DUPLICATE OF EXPRESSION IN vs list
+    for(unsigned int x=0; x<vs.size(); x++){
+        if(vs[x][1] == p){
+            return x;
+        }
+    }
+    return -1;
 }
 
-    while((*p).length() != 1){
-/////....
-            p1 = (*p)[0];
-            p2 = (*p)[1];
-            p3 = (*p)[2];
-            extra = "a";
-            extra[0] = caps;
-            extra += (*p).substr(0,3);
-            cout << "\nNew xtra = " << *p;
-            v1 = vars.find(p1);
-            if(v1 == np){
-                v1 = v_count + (int(p1) - 65);
+void get_negations(string p){
+    bool duplicate;
+    negations.clear();
+    for(unsigned int x=0; x<p.length()-1; x++){
+        if(p[x] == '~' && get_pos(p.substr(x+1,1)) != -1 ){
+            duplicate = false;
+            for(unsigned int y=0; y<negations.size(); y++){
+                if( p.substr(negations[y],2) == p.substr(x,2)){
+                    duplicate = true;
+                    break;
+                }
             }
-            v2 = vars.find(p3);
-            if(v2 == np){
-                v2 = v_count + (int(p3) - 65);
+            for(unsigned int y=0; y<vs.size(); y++){
+                if(p.substr(x, 2) == vs[y][0]){
+                    duplicate = true;
+                    break;
+                }
             }
+            if(!duplicate){
+                negations.push_back(x);
+            }
+        }
+    }
+}
+
+int evaluator(string *p){
+    string p1, p2, p3; // p1 is the first variable, p2 is the operator, p3 it the second variable
+    int v1, v2; // positions of p1 and p3 in the truth table
+    int ts; // current size of truth table
+    int sublen; // current length of expression substring
+    string extra = "a", extrasub = ""; // values to be pushed in reference array
+    int duplicate; // if there are duplicate expresions
+
+    for(unsigned int x=0; x<negations.size(); x++){ // evaluate negations first
+        int neg = negations[x];
+
+        if( unsigned(neg+1) < (*p).length() && vars.find((*p).substr(neg+1,1)[0] != np ) ){ // if there is a variable after negations operator
+            p1 = "" + (*p).substr(neg+1, 1);
+            v1 = get_pos(p1);
             ts = table.size();
             table.push_back(vector<int>(cols));
-            vs.push_back(extra);
+            vs.push_back({"~" + p1, "~" + p1});
+
+            for(int y=0; y<cols; y++){
+                table[ts][y] = int (!( bool (table[v1][y]) ));
+            }
+        }
+    }
+
+    if(groups.size() != 0){
+        do{
+            sub = (*p).substr(group[0]+1, group[1] - group[0]-1); // extract group
+            do{
+                sublen = 3;
+                if(sub[0] == '~'){
+                    p1 = "~" + sub.substr(1,1);
+                    p2 = "" + sub.substr(2,1);
+                    sublen++;
+                    if(sub[3] == '~'){
+                        p3 = "~" + sub.substr(4,1);
+                        sublen++;
+                    }else{
+                        p3 = "" + sub.substr(3,1);
+                    }
+                }else{
+                    p1 = "" + sub.substr(0,1);
+                    p2 = "" + sub.substr(1,1);
+                    if(sub[2] == '~'){
+                        p3 = "~" + sub.substr(3,1);
+                        sublen++;
+                    }else{
+                        p3 = "" + sub.substr(2,1);
+                    }
+                }
+
+                extra = "a";
+                extra[0] = caps;
+                extrasub = p1 + p2 + p3;
+                duplicate  = get_duplicate(extrasub);
+
+                if(duplicate == -1){
+                    v1 = get_pos(p1);
+                    v2 = get_pos(p3);
+
+                    ts = table.size();
+                    table.push_back(vector<int>(cols));
+                    vs.push_back({extra, extrasub});
+
+                    // EVALUATION OF PROPOSITION BASED ON p2 (OPERATOR)
+                    for(int y = 0; y < cols; y++){
+                        if(p2 == "^"){ // CONJUNCTION
+                            table[ts][y] = int (table[v1][y] && table[v2][y]);
+                        }else if(p2 == "v"){ ////DISJUNCTION
+                            table[ts][y] = (table[v1][y] || table[v2][y]);
+                        }else if(p2 == "<"){ // BICONDITION
+                            table[ts][y] = int (table[v1][y] == table[v2][y]);
+                        }else if(p2 == "o"){ // EXCLUSIVE DISJUNCTION
+                            table[ts][y] = int (table[v1][y] != table[v2][y]);
+                        }else if(p2 == ">"){ // IMPLICATION
+                            table[ts][y] = int ((table[v1][y] == 1 && table[v2][y] == 0)? 0:1);
+                        }
+                    } // end of y<cols loop
+
+                    if(openings.find((*p)[group[0]]) != np){
+                        (*p).erase(group[0],1); // remove the opening bracket of group. I think this should be outside of this loop
+                    }
+
+                    sub[0] = caps; // simplify evaluated expression into a letter.
+                    (*p)[group[0]] = caps; // simplify evaluated expression into a letter.
+
+                    sub.erase(1,sublen-1); // remove evaluated expression.
+                    (*p).erase(group[0]+1, sublen-1); // remove evaluated expression.
+
+                    caps++;
+                }else{
+                    if(openings.find((*p)[group[0]]) != np){
+                        (*p).erase(group[0],1); // remove the opening bracket of group. I think this should be outside of this loop
+                    }
+
+                    sub[0] = vs[duplicate][0][0]; // simplify evaluated expression into a letter.
+                    (*p)[group[0]] = vs[duplicate][0][0]; // simplify evaluated expression into a letter.
+                    sub.erase(1,sublen-1); // remove evaluated expression.
+                    (*p).erase(group[0]+1, sublen-1); // remove evaluated expression.
+                }
+
+            }while(sub.length() != 1);
+            (*p).erase(group[0]+1,1); // remove closing bracket of group;
+            // GET THE GROUPS AGAIN BECAUSE THE POSITIONS ALREADY CHANGED.
+            get_negations(*p);
+            get_group(*p);
+
+            for(unsigned int x=0; x<negations.size(); x++){ // evaluate negations again if there are any
+                int neg = negations[x];
+                if( unsigned(neg+1) < (*p).length() && vars.find((*p).substr(neg+1,1)[0] != np )){ // if there is a variable after negations operator
+                    p1 = "" + (*p).substr(neg+1, 1);
+                    v1 = get_pos(p1);
+                    ts = table.size();
+                    table.push_back(vector<int>(cols));
+                    vs.push_back({"~" + p1, "~" + p1});
+
+                    for(int y=0; y<cols; y++){
+                        table[ts][y] = int (!( bool (table[v1][y]) ));
+                    }
+                }
+            }
+
+        }while(group[0] >= 0 && group[1] > 0); // end of groups loop
+
+    }else{
+        // else is not needed
+    }
+
+    while((*p).length() > 1){
+/////.... NOW LOOPING THROUGH THE SIMPLIFIED GROUPLESS PROPOSITION
+        if((*p).length() == 2){ // if the remaining expression is in the form '~p';
+            if(get_pos(*p) != -1){
+                break; // negation already evaluated
+            }else{
+                get_negations(*p); // get negation one last time.
+                for(unsigned int x=0; x<negations.size(); x++){ // evaluate negations first
+                    int neg = negations[x];
+                    p1 = "" + (*p).substr(neg+1, 1);
+                    v1 = get_pos(p1);
+                    ts = table.size();
+                    table.push_back(vector<int>(cols));
+                    vs.push_back({"~" + p1, "~" + p1});
+
+                    for(int y=0; y<cols; y++){
+                        table[ts][y] = int (!( bool (table[v1][y]) ));
+                    }
+                }
+                break;
+            }
+        }
+        sublen = 3;
+        if((*p).substr(0,1) == "~"){
+            p1 = (*p).substr(0,2);
+            p2 = (*p).substr(2,1);
+            sublen++;
+            if((*p).substr(3,1) == "~"){
+                p3 = (*p).substr(3,2);
+                sublen++;
+            }else{
+                p3 = (*p).substr(3,1);
+            }
+        }else{
+            p1 = (*p).substr(0,1);
+            p2 = (*p).substr(1,1);
+            if((*p).substr(2,1) == "~"){
+                p3 = (*p).substr(2,2);
+                sublen++;
+            }else{
+                p3 = (*p).substr(2,1);
+            }
+        }
+
+         extra = "a";
+        extra[0] = caps;
+        extrasub = (*p).substr(0,sublen);
+        duplicate = get_duplicate(extrasub);
+
+        if(duplicate == -1){
+            v1 = get_pos(p1);
+            v2 = get_pos(p3);
+
+            ts = table.size();
+            table.push_back(vector<int>(cols));
+            vs.push_back({extra, extrasub});
             // EVALUATION OF PROPOSITION BASED ON p2 (OPERATOR)
             for(int y = 0; y < cols; y++){
-                if(p2 == '^'){ // CONJUNCTION
+                if(p2 == "^"){ // CONJUNCTION
                     table[ts][y] = int (table[v1][y] && table[v2][y]);
-                }else if(p2 == 'v'){ ////DISJUNCTION
+                }else if(p2 == "v"){ ////DISJUNCTION
                     table[ts][y] = (table[v1][y] || table[v2][y]);
-                }else if(p2 == '<'){ // BICONDITION
+                }else if(p2 == "<"){ // BICONDITION
                     table[ts][y] = int (table[v1][y] == table[v2][y]);
-                }else if(p2 == 'o'){ // EXCLUSIVE DISJUNCTION
+                }else if(p2 == "o"){ // EXCLUSIVE DISJUNCTION
                     table[ts][y] = int (table[v1][y] != table[v2][y]);
                   //  cout << "\nxclusive disj:v1:" << table[v1][y] << "   v2:" << table[v2][y] << "\n";
-                }else if(p2 == '>'){ // IMPLICATION
+                }else if(p2 == ">"){ // IMPLICATION
                     table[ts][y] = int ((table[v1][y] == 1 && table[v2][y] == 0)? 0:1);
                 }
             } // end of cols loop
             (*p)[0] = caps;
-            (*p).erase(1, 2);
+            (*p).erase(1, sublen-1);
             caps++;
+        }else{
+            (*p)[0] = vs[duplicate][0][0];
+            (*p).erase(1, sublen-1);
+        }
 ////.....
     }
-  //  cout << "\nppP : " << (*p);
     return 0;
 } // END OF EVALUATOR FUNCTION
 
-int main()
-{
+void introduction(){
+    cout << "\n=================================";
+    cout << "\n  PROPOSITIONAL LOGIC EVALUATOR  ";
+    cout << "\n              v3.0               ";
+    cout << "\n        Jonathan Pizarra         ";
+    cout << "\n=================================";
+    cout << "\n\nValid variables : p q r s t    ";
+    cout << "\nValid brackets : (){}[]";
+    cout << "\nOperators: ";
+    cout << "\n v  : Disjunction";
+    cout << "\n ^  : Conjunction";
+    cout << "\n -> : Implication";
+    cout << "\n <->: Bicondition";
+    cout << "\n o  : Exclusive Disjunction";
+    cout << "\n ~  : Negation";
+    cout << "\n\nEnter proposition : ";
+}
+
+int main(){
 /*  v / V   = disjunction
     ^       = conjunction
     ->      = implication
@@ -347,15 +582,22 @@ int main()
     o / O   = exclusive disjunction
     p, q, r, s, t, P, Q, R, S, T = variables
     //// p ^ q -> r ^ s == should be evaluated from left to right
+    ~       = (tilde) negation operator
 
 */
-   // string prop = "((p v r) ^ (q -> p -> r)) -> (s <-> t o ((q v r) o (r -> (p <-> t))) o s <-> t)";
-    // string prop = "{[ ( p -> q ) ^ ( r -> s ) ] ^ ( p v r ) } -> (q v s )";
-     string prop = "[ ( p -> q ) ^ ( p -> r) ] -> (q -> r)";
+    introduction();
 
+     string prop = "((p v r) ^ (q -> p -> r)) -> (s <-> t o ((q v r) o (r -> (p <-> t))) o s <-> t)";
+    // prop = "{[ ( p -> q ) ^ ( r -> s ) ] ^ ( p v r ) } -> (q v s )";
+    // prop = "[ ( ~p -> q ) ^ ( p -> r) ] -> (q -> r)";
+    // prop = "~p > q v (~q ^ r)";
+    // prop = "~p > ~q";
+     prop = "~q v s -> ~{[ ( p -> ~q ) ^ ( r -> s -> ~p v ~t) ] ^ ~( p v r ) } -> (~q v s ) o (p v r) ^ (~q v s) v [t ^ p ^ (~r -> ~p)]";
+    // prop = "~(p->q ^ (p->q))";
     int n = prop.length();
     int x, y; //// loop/counter variable
 
+    cout << prop;
 ////// TO LOWER CASE
     for(x = 0; x < n; x++){
         prop[x] = tolower(prop[x]);
@@ -367,14 +609,13 @@ int main()
             y--;
         }
     }
-    cout << "\nno spaces : " << prop << ":end\n";
 
 ////// CHECK FOR INVALID CHARS
     if(!checkIfValidChars(prop)){
         cout << "\nInvalid proposition. Invalid chars found\n";
         return 0;
     }else{
-        cout << "\nValid characters\n";
+        //cout << "\nValid characters\n";
     }
 
 ////// CHECK FOR BALANCE PARENTHESES
@@ -382,16 +623,17 @@ int main()
         cout << "\nParentheses not balanced\n";
         return 0;
     }else{
-        cout << "\nBalance Parentheses\n";
+        //cout << "\nBalance Parentheses\n";
     }
-/////// CHECK IF VALID EXPRESSION  ex : (p (v q) )vv r is invalid
 
+/////// CHECK IF VALID EXPRESSION  ex : (p (v q) )vv r is invalid
     if(!checkIfValidExp(prop)){
         cout << "\nINvalid expression\n";
         return 0;
     }else{
-        cout << "\nValid expression\n";
+        //cout << "\nValid expression\n";
     }
+
 /////// SIMPLIFY <-> AND -> INTO < AND > RESPECTIVELY
     for(x = 0; x < n; x++){
         if(prop[x] == '<'){
@@ -402,31 +644,28 @@ int main()
             n--;
         }
     }
-    cout << "\nSIMPLIFIED :" << prop << ":\n";
+    //cout << "\nSIMPLIFIED :" << prop << ":\n";
 
-     //// get variables
-    string vars = "pqrst";
-//    vector<string> vs;
+//// GET THE VARIABLES USED
+    string vars = "pqrst", var;
     char v;
-    string extra = "a";
     for(unsigned int x = 0; x < vars.length(); x++){
-        v = vars[x];//char
+        v = vars[x]; // char
         for(int y = 0; y < n; y++){
             if(prop[y] == v){
-                extra[0] = v;
-                vs.push_back(extra);
+                var = prop.substr(y,1);
+                vs.push_back({var, var});
                 v_count++;
                 break;
             }
         }
     }
 
-    //cout << "\nvars : " << vs[0] << endl;
-
     int vl = vs.size();
     cols = pow( 2.0,double(vl) );
+    // ADD VARIABLE COLUMNS IN TABLE
     for(x=0;x<vl;x++)table.push_back(vector<int>(cols));
-    //cout << "\npow:" << (pow(2.0,double(vl))) << ":\n";
+
     ///// SETTING INITIAL TRUTH TABLE VALUES FOR THE VARIABLES
     bool b = false;
     int valcount = cols/2;
@@ -439,26 +678,14 @@ int main()
         }
         valcount /= 2;
     }
-   // cout << "\nbefore get_group";
+    get_negations(prop);
     get_group(prop);
-
-    for(unsigned int x = 0; x < groups.size(); x++){
-       // cout << "\n x[" << x << "][0]=" << groups[x][0] << "..x[" << x << "][1]=" << groups[x][1] << endl;
-    }
 
     string prop2 = prop;
     evaluator(&prop2);
 
     ////// PRINT THE TABLE
-    cout << "\n\ntable: \n\n";
-    vl = table.size();
-    for(x = 0; x < vl; x++){
-        cout << vs[x] << " :\t";
-        for(y = 0; y < cols; y++){
-            cout << table[x][y] << "  " ;
-        }
-        cout << "\n";
-    }
+    print_table();
 
     return 0;
 }
