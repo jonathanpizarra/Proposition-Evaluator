@@ -9,7 +9,11 @@ using namespace std;
 // for easier adding of functionality
 // will try to optimize the code as well
 
-
+int operant, cols;
+string ops = "v^o<->";
+string openings = "{[(";
+string closings = "]})";
+string vars = "pqrst";
 
 bool checkIfValidExp(string p){
     char c1, c2;

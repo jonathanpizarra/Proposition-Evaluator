@@ -22,7 +22,7 @@ using namespace std;
 //               : October 12, 2020 11:54 pm. commit changes to github repo.
 //                 Bug: Problem arises if the table exceeds 31 columns. Exceeds the 26 capital letters. 
 
-int operant, cols;
+
 vector< vector<int> > table; // truth table
 vector< vector<string> > vs; // variables in input prop
 vector< vector<int> > groups; // braces group
@@ -32,10 +32,6 @@ char caps = 'A'; // letters for simplifying prop expression
 string sub;
 int v_count = 0; // length of vs
 
-    string ops = "v^o<->";
-    string openings = "{[(";
-    string closings = "]})";
-    string vars = "pqrst";
 
 void print_table(){
     // increase cmd screen width buffer size if the proposition is too long.
