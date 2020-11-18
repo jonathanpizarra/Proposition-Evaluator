@@ -1,4 +1,5 @@
 #include <iostream>
+#define np string::npos
 
 using namespace std;
 
