@@ -8,6 +8,7 @@ using namespace std;
 // for easier access
 // for easier adding of functionality
 // will try to optimize the code as well
+// TODO : add which part of expression has error
 
 int operant, cols;
 string ops = "v^o<->";
