@@ -15,6 +15,16 @@ char caps = 'A'; // letters for simplifying prop expression
 string sub;
 int v_count = 0; // length of vs
 
+int get_pos(string p){
+    // GET THE POSITION OF SHORTENER VARIABLE IN vs list
+    for(unsigned int x = 0; x < vs.size(); x++){
+        if(vs[x][0] == p){
+            return x;
+        }
+    }
+    return -1;
+}
+
 
 void get_group(string p){
     // GET THE POSITIONS OF BRACKET GROUPS eg. : (p>q) gets 0 and 4
@@ -88,16 +98,6 @@ int get_duplicate(string p){
     // GET POSSIBLE DUPLICATE OF EXPRESSION IN vs list
     for(unsigned int x=0; x<vs.size(); x++){
         if(vs[x][1] == p){
-            return x;
-        }
-    }
-    return -1;
-}
-
-int get_pos(string p){
-    // GET THE POSITION OF SHORTENER VARIABLE IN vs list
-    for(unsigned int x = 0; x < vs.size(); x++){
-        if(vs[x][0] == p){
             return x;
         }
     }

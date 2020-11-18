@@ -1,7 +1,6 @@
 #include <iostream>
 #include <vector>
 #include <math.h>
-#include "validation.cpp"
 #include "parser.cpp"
 
 #define np string::npos
