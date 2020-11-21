@@ -1,0 +1,31 @@
+PROPOSITION EVALUATOR ALGORITHM
+
+1. change letters to lowercase
+2. remove spaces
+3. check for invalid characters
+4. check for balance parenthesis
+5. check if valid expression
+	5.1 variables and operators can't be consecutive
+	5.2 ...
+6. simplify -> and <-> into > and < respectively
+7. get the variables used (p, q, r, s, t)
+8. create truth table and set initial values for variables  
+9.   get all negations if there are any.
+10.  get parenthesis groups if there are any. eg: in (p^q)>r, (p^q) is a group.
+11.  evaluate variable negations first.
+12.  evaluate the innermost groups first
+	12.1 get first three characters. they should be in the form p^q.
+	12.2 evaluate the expression and add to table.
+	12.3 simplify the expression into a single capital letter.
+		12.3.1 save the letter and expression in an array for reference.
+	12.4 repeat until only one letter remains in the group.  eg: ~(p^q)>r should now be ~(A)>r.
+	12.5 remove parenthesis. eg: ~(p^q)>r should now be ~A>r.
+	12.6 evaluate variable negations if there are any. ~A>r should now be A>r.
+13. evaluate the remaining simple expression.
+14. print the complete truth table.
+15. TODO : determine if tautology, contradiction or contingency
+ 
+
+
+
+
