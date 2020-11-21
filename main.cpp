@@ -88,49 +88,6 @@ void print_table(){
 
 }
 
-bool checkIfValidChars(string p){
-    string vals = "pqrsto^v(){}[]<->~";
-
-    for(unsigned int x = 0; x < p.length(); x++){
-        if(p[x] == ' '){
-            continue;
-        }
-        if(vals.find(p[x]) == string::npos){
-            return false;
-        }
-    }
-    return true;
-}
-
-bool checkIfBalance(string p){
-    vector< char > stacc;
-    string pars = "(){}[]";
-
-    for(unsigned int x = 0; x < p.length(); x++){
-        char q = p[x];
-        if(pars.find(q) != string::npos){
-            if(q == '(' || q == '{' || q == '['){
-                stacc.push_back(q);
-            }else{
-                if(q == ')' && stacc.back() == '('){
-                    stacc.pop_back();
-                }else if(q == '}' && stacc.back() == '{'){
-                    stacc.pop_back();
-                }else if(q == ']' && stacc.back() == '['){
-                    stacc.pop_back();
-                }else{
-                    return false;
-                }
-            }
-        }
-    }
-    if(stacc.size() == 0){
-        return true;
-    }else{
-        return false;
-    }
-}
-
 
 void introduction(){
     cout << "\n=================================";

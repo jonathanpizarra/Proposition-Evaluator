@@ -16,20 +16,65 @@ string openings = "{[(";
 string closings = "]})";
 string vars = "pqrst";
 
+
+bool checkIfValidChars(string p){
+    string vals = "pqrsto^v(){}[]<->~";
+
+    for(unsigned int x = 0; x < p.length(); x++){
+        if(p[x] == ' '){
+            continue;
+        }
+        if(vals.find(p[x]) == string::npos){
+            return false;
+        }
+    }
+    return true;
+}
+
+bool checkIfBalance(string p){
+    vector< char > stacc;
+    string pars = "(){}[]";
+
+    for(unsigned int x = 0; x < p.length(); x++){
+        char q = p[x];
+        if(pars.find(q) != string::npos){
+            if(q == '(' || q == '{' || q == '['){
+                stacc.push_back(q);
+            }else{
+                if(q == ')' && stacc.back() == '('){
+                    stacc.pop_back();
+                }else if(q == '}' && stacc.back() == '{'){
+                    stacc.pop_back();
+                }else if(q == ']' && stacc.back() == '['){
+                    stacc.pop_back();
+                }else{
+                    return false;
+                }
+            }
+        }
+    }
+    if(stacc.size() == 0){
+        return true;
+    }else{
+        return false;
+    }
+}
+
+
 bool checkIfValidExp(string p){
     char c1, c2;
     int n = p.length(), x;
-//closings...openings...vars...ops.. -moved to global scope
+    //closings...openings...vars...ops.. -moved to global scope
 
-// I FEEL LIKE ALL THE LOGIC HERE CAN STILL BE SIMPLIFIED.
-// TODO : ADD A METHOD THAT DISPLAYS WHERE EXACTLY IN THE STRING THE ERROR IS.
+    // I FEEL LIKE ALL THE LOGIC HERE CAN STILL BE SIMPLIFIED.
+    // TODO : ADD A METHOD THAT DISPLAYS WHERE EXACTLY IN THE STRING THE ERROR IS.
 
-/* additional logic for negation operator
-    ~ can't come after a variable.
-    ~ can't go between brackets like   )~(    )~)    (~)     but can go  (~(
-    ~ can't go consecutively like : ~~
+    /* additional logic for negation operator
+        ~ can't come after a variable.
+        ~ can't go between brackets like   )~(    )~)    (~)     but can go  (~(
+        ~ can't go consecutively like : ~~
 
-*/
+    */
 
     for(x = 0; x < n-1; x++){
         c1 = p[x];
