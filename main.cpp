@@ -22,6 +22,7 @@ using namespace std;
 //               : October 12, 2020 11:54 pm. commit changes to github repo.
 //                 Bug: Problem arises if the table exceeds 31 columns. Exceeds the 26 capital letters. 
 
+//        TO DO  : March 7, 2021 - create web based implementation using javascript. 
 
 
 
@@ -128,7 +129,7 @@ int main(){
     // prop = "~p > q v (~q ^ r)";
     // prop = "~p > ~q";
      prop = "~q v s -> ~{[ ( p -> ~q ) ^ ( r -> s -> ~p v ~t) ] ^ ~( p v r ) } -> (~q v s ) o (p v r) ^ (~q v s) v [t ^ p ^ (~r -> ~p)]";
-     prop = "~(p->q ^ (p->q))";
+     prop = "~(p->q ^ (~p->q)) <-> (s v t)";
     int n = prop.length();
     int x, y; //// loop/counter variable
 
