@@ -129,7 +129,8 @@ int main(){
     // prop = "~p > q v (~q ^ r)";
     // prop = "~p > ~q";
      prop = "~q v s -> ~{[ ( p -> ~q ) ^ ( r -> s -> ~p v ~t) ] ^ ~( p v r ) } -> (~q v s ) o (p v r) ^ (~q v s) v [t ^ p ^ (~r -> ~p)]";
-     prop = "~(p->q ^ (~p->q)) <-> (s v t)";
+     prop = "~(p->q ^ (~p->r)) <-> (s v t)";
+     prop = " ~((p ^ q) -> p) v (r <-> s)";
     int n = prop.length();
     int x, y; //// loop/counter variable
 
@@ -219,6 +220,27 @@ int main(){
 
     string prop2 = prop;
     evaluator(&prop2);
+
+    ////// EVALUATE RESULT
+    cout << "\n\n=========================================================";
+    int start = table.back()[0];
+    int res_size = table.back().size();
+    bool isTautology = start == 1;
+    bool isContradiction = start == 0;
+    for(int x=1; x<res_size; x++){
+        if(table.back()[x] != start){
+            cout << "\n\n Result : CONTINGENCY";
+            isTautology = false;
+            isContradiction = false;
+            break;
+        }
+    }
+    if(isTautology){
+        cout << "\n\n Result : TAUTOLOGY";
+    }
+    if(isContradiction){
+        cout << "\n\n Result : CONTRADICTION";
+    }
 
     ////// PRINT THE TABLE
     print_table();
